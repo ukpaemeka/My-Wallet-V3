@@ -302,14 +302,6 @@ MyWallet.initializeWallet = function (pw, decryptSuccess, buildHdSuccess) {
     );
   };
 
-  // Attempt to load metadata for buy-sell
-  var tryLoadExternal = function () {
-    var loadExternalFailed = function (message) {
-      console.warn('wallet.external not set:', message);
-    };
-    return MyWallet.wallet.loadExternal.bind(MyWallet.wallet)().catch(loadExternalFailed);
-  };
-
   var p = Promise.resolve().then(doInitialize);
   var incStats = function () {
     return MyWallet.wallet.incStats.bind(MyWallet.wallet)();
@@ -319,7 +311,7 @@ MyWallet.initializeWallet = function (pw, decryptSuccess, buildHdSuccess) {
   };
   p.then(incStats);
   p.then(saveGUID);
-  return p.then(tryLoadExternal);
+  return p.then(MyWallet.wallet.loadMetaData);
 };
 
 // used on iOS

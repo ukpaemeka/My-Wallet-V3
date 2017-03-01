@@ -14,7 +14,7 @@ class Addresses {
   toJSON () {
     return {
       version: '1.0.0',
-      labels: this._labels
+      accounts: this._accounts
     };
   }
 
@@ -24,7 +24,7 @@ class Addresses {
       if (object !== null) {
         // TODO: run upgrade scripts
         // TODO: abort if major version changed
-        this._labels = object.labels; // TODO: integrity check
+        this._accounts = object.accounts || []; // TODO: integrity check
       } else {
         this.migrate();
       }
@@ -56,15 +56,33 @@ class Addresses {
     // TODO: for each wallet account:
     // TODO:   go through address_labels, add entries here and delete in original wallet
     // TODO:   put placeholder entry with just the index
+    //     this.save();
   }
 
   maxLabeledReceiveIndex (accountIndex) {
     // TODO
   }
 
+  getLabel (accountIndex, addressIndex) {
+    if (!this._accounts[accountIndex]) {
+      return null;
+    }
+
+    const entry = this._accounts[accountIndex][addressIndex];
+
+    if (!entry) {
+      return null;
+    }
+
+    return entry.label;
+  }
+
   addLabel (accountIndex, addressIndex, label) {
     // TODO: check if it already exists
-    this._labels.push({acc: accountIndex, addr: addressIndex, label: label});
+    if (!this._accounts[accountIndex]) {
+      this._accounts[accountIndex] = [];
+    }
+    this._accounts[accountIndex][addressIndex] = {label: label};
 
     // Legacy:
     if (false) { // TODO: check if this is the highest index for this account
@@ -74,7 +92,7 @@ class Addresses {
   }
 
   removeLabel (accountIndex, addressIndex) {
-    // TODO
+    this._accounts[accountIndex][addressIndex] = undefined;
     // Legacy:
     if (false) { // TODO: check if this was the highest index for this account
       // TODO: modify index of account.address_labels entry.

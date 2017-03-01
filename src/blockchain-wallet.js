@@ -1,5 +1,3 @@
-'use strict';
-
 module.exports = Wallet;
 
 // dependencies
@@ -323,9 +321,6 @@ Object.defineProperties(Wallet.prototype, {
   'addressesHD': {
     configurable: false,
     get: function () {
-      if (!this._addressesHD) {
-        this._addressesHD = new AddressesHD(this);
-      }
       return this._addressesHD;
     }
   }
@@ -699,7 +694,7 @@ Wallet.prototype.upgradeToV3 = function (firstAccountLabel, pw, success, error) 
   this._hd_wallets.push(hd);
   var label = firstAccountLabel || 'My Bitcoin Wallet';
   this.newAccount(label, pw, this._hd_wallets.length - 1, true);
-  this.loadExternal();
+  this.loadMetadata();
   MyWallet.syncWallet(function (res) {
     success();
   }, error);
@@ -847,19 +842,49 @@ Wallet.prototype.fetchAccountInfo = function () {
   });
 };
 
-Wallet.prototype.loadExternal = function () {
+Wallet.prototype.metadata = function (typeId) {
+  var masterhdnode = this.hdwallet.getMasterHDNode();
+  return Metadata.fromMasterHDNode(masterhdnode, typeId);
+};
+
+Wallet.prototype.loadMetadata = function () {
   // patch (buy-sell does not work with double encryption for now)
   if (this.isDoubleEncrypted === true || !this.isUpgradedToHD) {
     return Promise.resolve();
   } else {
-    this._external = new External(this);
-    return this._external.fetch();
-  }
-};
+    var loadExternal = function () {
+      var success = function () {
+        this._external = new External(this);
+      };
 
-Wallet.prototype.metadata = function (typeId) {
-  var masterhdnode = this.hdwallet.getMasterHDNode();
-  return Metadata.fromMasterHDNode(masterhdnode, typeId);
+      var error = function (message) {
+        console.warn('wallet.external not set:', message);
+        return Promise.resolve();
+      };
+
+      return this._external.fetch().then(success).catch(error);
+    }
+
+    var fetchLabels = function () {
+      var addressesHD = new AddressesHD(this);
+
+      var success = function () {
+        this._addressesHD = addressesHD;
+      };
+
+      var error = function () {
+        this._addressesHD = null;
+        return Promise.resolve();
+      };
+
+      addressHD.fetch().then(success).catch(error);
+    };
+
+    return Promise.all[
+      this.loadExternal.bind(this),
+      fetchLabels.bind(this)
+    ];
+  }
 };
 
 Wallet.prototype.incStats = function () {
